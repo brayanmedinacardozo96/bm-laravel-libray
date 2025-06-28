@@ -65,4 +65,19 @@ interface BaseRepositoryInterface
      * Build query with where conditions
      */
     public function whereQuery(array $columns = ['*'], array $where = []);
+
+    /**
+     * Count records
+     */
+    public function count(array $conditions = []): int;
+
+    /**
+     * Get first record matching conditions
+     */
+    public function first(array $conditions = [], array $columns = ['*']);
+
+    /**
+     * Check if record exists by ID
+     */
+    public function exists(mixed $id): bool;
 }

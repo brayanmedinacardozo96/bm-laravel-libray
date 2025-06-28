@@ -4,11 +4,14 @@ namespace Tests\Examples;
 
 use BMCLibrary\Repository\AutoModelRepository;
 use BMCLibrary\Contracts\BaseRepositoryInterface;
+use BMCLibrary\Models\Base\BaseModel;
 
-// Ejemplo de modelo
-class Parameter extends \Illuminate\Database\Eloquent\Model
+// Ejemplo de modelo extendiendo BaseModel
+class Parameter extends BaseModel
 {
     protected $fillable = ['name', 'value', 'type', 'description'];
+    
+    // Ahora puedes usar Parameter::name() para obtener el nombre de la tabla
 }
 
 // Interfaz específica del repositorio
