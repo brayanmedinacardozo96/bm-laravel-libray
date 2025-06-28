@@ -98,21 +98,6 @@ interface GenericRepositoryInterface
     public function whereQuery(array $columns = ['*'], array $where = []): \Illuminate\Database\Eloquent\Builder;
 
     /**
-     * Count records
-     */
-    public function count(array $conditions = []): int;
-
-    /**
-     * Get first record matching conditions
-     */
-    public function first(array $conditions = [], array $columns = ['*']);
-
-    /**
-     * Check if record exists by ID
-     */
-    public function exists(mixed $id): bool;
-
-    /**
      * Update or create a record with separate parameters
      */
     public function updateOrCreateWithFilters(array $attributes, array $filters);
