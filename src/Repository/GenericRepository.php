@@ -3,13 +3,18 @@
 namespace BMCLibrary\Repository;
 
 use BMCLibrary\Contracts\GenericRepositoryInterface;
+use BMCLibrary\Exceptions\RepositoryException;
+use BMCLibrary\Traits\AdvancedRepositoryOperations;
+use BMCLibrary\Traits\BasicRepositoryOperations;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 abstract class GenericRepository implements GenericRepositoryInterface
 {
+    use AdvancedRepositoryOperations, BasicRepositoryOperations;
     protected Model $model;
 
     public function __construct(Model $model)
@@ -64,11 +69,6 @@ abstract class GenericRepository implements GenericRepositoryInterface
         return $this->model->create($data);
     }
 
-    public function insert(array $data): bool
-    {
-        return $this->model->insert($data);
-    }
-
     public function find(mixed $id): ?Model
     {
         return $this->model->find($id);
@@ -102,16 +102,97 @@ abstract class GenericRepository implements GenericRepositoryInterface
         $query = $this->model->select($columns);
 
         foreach ($where as $column => $value) {
-            if (is_array($value)) {
-                $operator = $value[0] ?? '=';
-                $conditionValue = $value[1] ?? null;
-                $query->where($column, $operator, $conditionValue);
-            } else {
-                $query->where($column, '=', $value);
-            }
+            $this->applyWhereCondition($query, $column, $value);
         }
 
         return $query;
+    }
+
+    /**
+     * Apply where condition to query
+     *
+     * @param EloquentBuilder $query
+     * @param string $column
+     * @param mixed $value
+     * @return void
+     */
+    protected function applyWhereCondition(EloquentBuilder $query, string $column, mixed $value): void
+    {
+        if (is_array($value)) {
+            $this->applyArrayCondition($query, $column, $value);
+        } else {
+            $query->where($column, '=', $value);
+        }
+    }
+
+    /**
+     * Apply array-based where condition
+     *
+     * @param EloquentBuilder $query
+     * @param string $column
+     * @param array $value
+     * @return void
+     */
+    protected function applyArrayCondition(EloquentBuilder $query, string $column, array $value): void
+    {
+        if (isset($value[0]) && is_string($value[0])) {
+            $this->applyOperatorCondition($query, $column, $value);
+        } else {
+            // Si no hay operador, asumimos que es whereIn
+            $query->whereIn($column, $value);
+        }
+    }
+
+    /**
+     * Apply operator-based condition
+     *
+     * @param EloquentBuilder $query
+     * @param string $column
+     * @param array $value
+     * @return void
+     */
+    protected function applyOperatorCondition(EloquentBuilder $query, string $column, array $value): void
+    {
+        $operator = strtolower($value[0]);
+        $conditionValue = $value[1] ?? null;
+
+        switch ($operator) {
+            case 'in':
+                $query->whereIn($column, $conditionValue);
+                break;
+            case 'not_in':
+            case 'notin':
+                $query->whereNotIn($column, $conditionValue);
+                break;
+            case 'between':
+                if (is_array($conditionValue) && count($conditionValue) === 2) {
+                    $query->whereBetween($column, $conditionValue);
+                }
+                break;
+            case 'not_between':
+            case 'notbetween':
+                if (is_array($conditionValue) && count($conditionValue) === 2) {
+                    $query->whereNotBetween($column, $conditionValue);
+                }
+                break;
+            case 'null':
+                $query->whereNull($column);
+                break;
+            case 'not_null':
+            case 'notnull':
+                $query->whereNotNull($column);
+                break;
+            case 'like':
+                $query->where($column, 'LIKE', $conditionValue);
+                break;
+            case 'ilike':
+                $query->where($column, 'ILIKE', $conditionValue);
+                break;
+            default:
+                // Operadores estándar: =, !=, <, >, <=, >=, etc.
+                $query->where($column, $operator, $conditionValue);
+                break;
+        }
     }
 
     public function search(array $search): LengthAwarePaginator
@@ -152,63 +233,6 @@ abstract class GenericRepository implements GenericRepositoryInterface
     }
 
     /**
-     * Build select query
-     *
-     * @param array $columns
-     * @return EloquentBuilder
-     */
-    public function buildSelect(array $columns = ['*']): EloquentBuilder
-    {
-        return $this->model->select($columns);
-    }
-
-    /**
-     * Get the model instance
-     *
-     * @return Model
-     */
-    public function getModel(): Model
-    {
-        return $this->model;
-    }
-
-    /**
-     * Set a new model instance
-     *
-     * @param Model $model
-     * @return self
-     */
-    public function setModel(Model $model): self
-    {
-        $this->model = $model;
-        return $this;
-    }
-
-    /**
-     * Get records with specific conditions
-     *
-     * @param array $conditions
-     * @param array $columns
-     * @param int $perPage
-     * @return LengthAwarePaginator
-     */
-    public function getWhere(array $conditions, array $columns = ['*'], int $perPage = 15): LengthAwarePaginator
-    {
-        return $this->whereQuery($columns, $conditions)->paginate($perPage);
-    }
-
-    /**
-     * Get first record matching conditions
-     *
-     * @param array $conditions
-     * @return Model|null
-     */
-    public function getFirstWhere(array $conditions): ?Model
-    {
-        return $this->whereQuery(['*'], $conditions)->first();
-    }
-
-    /**
      * Check if record exists
      *
      * @param mixed $id
@@ -217,20 +241,5 @@ abstract class GenericRepository implements GenericRepositoryInterface
     public function exists(mixed $id): bool
     {
         return $this->model->where($this->model->getKeyName(), $id)->exists();
-    }
-
-    /**
-     * Get count of records
-     *
-     * @param array $conditions
-     * @return int
-     */
-    public function count(array $conditions = []): int
-    {
-        if (empty($conditions)) {
-            return $this->model->count();
-        }
-
-        return $this->whereQuery(['*'], $conditions)->count();
     }
 }
