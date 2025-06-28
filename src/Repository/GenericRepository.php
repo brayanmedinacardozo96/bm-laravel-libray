@@ -5,6 +5,7 @@ namespace BMCLibrary\Repository;
 use BMCLibrary\Contracts\GenericRepositoryInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 abstract class GenericRepository implements GenericRepositoryInterface
@@ -43,9 +44,19 @@ abstract class GenericRepository implements GenericRepositoryInterface
         return $this->model->paginate($perPage);
     }
 
-    public function allForSelect(array $columns = ['*'], int $perPage = 1000): LengthAwarePaginator
+    public function getAllRecords(): Collection
     {
-        return $this->model->select($columns)->paginate($perPage);
+        return $this->model->all();
+    }
+
+    public function getAllWhere(array $conditions): Collection
+    {
+        return $this->whereQuery(['*'], $conditions)->get();
+    }
+
+    public function getAllForSelect(array $columns = ['id', 'name']): Collection
+    {
+        return $this->model->select($columns)->get();
     }
 
     public function create(array $data): Model

@@ -17,9 +17,19 @@ interface BaseRepositoryInterface
     public function all(int $perPage = 15): LengthAwarePaginator;
 
     /**
-     * Get all records for select dropdown
+     * Get all records without pagination
      */
-    public function allForSelect(array $columns = ['*'], int $perPage = 1000): LengthAwarePaginator;
+    public function getAllRecords();
+
+    /**
+     * Get all records matching conditions without pagination
+     */
+    public function getAllWhere(array $conditions);
+
+    /**
+     * Get all records for select dropdown without pagination
+     */
+    public function getAllForSelect(array $columns = ['id', 'name']);
 
     /**
      * Create a new record

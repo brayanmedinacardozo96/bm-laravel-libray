@@ -17,13 +17,27 @@ interface GenericRepositoryInterface
     public function all(int $perPage = 15): LengthAwarePaginator;
 
     /**
-     * Get all records for select dropdown
+     * Get all records without pagination
+     *
+     * @return Collection
+     */
+    public function getAllRecords(): Collection;
+
+    /**
+     * Get all records matching conditions without pagination
+     *
+     * @param array $conditions
+     * @return Collection
+     */
+    public function getAllWhere(array $conditions): Collection;
+
+    /**
+     * Get all records for select dropdown without pagination
      *
      * @param array $columns
-     * @param int $perPage
-     * @return LengthAwarePaginator
+     * @return Collection
      */
-    public function allForSelect(array $columns = ['*'], int $perPage = 1000): LengthAwarePaginator;
+    public function getAllForSelect(array $columns = ['id', 'name']): Collection;
 
     /**
      * Create a new record

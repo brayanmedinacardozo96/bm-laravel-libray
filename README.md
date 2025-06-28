@@ -453,6 +453,7 @@ class UserRepository extends GenericRepository
 ```php
 // Operaciones básicas
 $repository->all(15);                    // Paginado
+$repository->getAllRecords();            // Sin paginación - NUEVO
 $repository->find($id);                  // Buscar por ID
 $repository->create($data);              // Crear nuevo
 $repository->update($id, $data);         // Actualizar
@@ -460,8 +461,13 @@ $repository->delete($id);                // Eliminar
 $repository->exists($id);                // Verificar existencia
 
 // Búsquedas avanzadas
-$repository->getWhere(['active' => true], ['*'], 15);
+$repository->getWhere(['active' => true], ['*'], 15);      // Paginado
+$repository->getAllWhere(['active' => true]);             // Sin paginación - NUEVO
 $repository->getFirstWhere(['email' => 'user@email.com']);
+
+// Para dropdowns y selects
+$repository->allForSelect(['id', 'name'], 1000);          // Paginado
+$repository->getAllForSelect(['id', 'name']);             // Sin paginación - NUEVO
 
 // Búsqueda con filtros
 $repository->search([
@@ -477,11 +483,12 @@ $repository->search([
 $repository->whereQuery(['name', 'email'], [
     'active' => true,
     'created_at' => ['>=', '2024-01-01']
-])->get();
+])->get();                               // Sin paginación
+// O
+])->paginate(15);                        // Con paginación
 
 // Utilidades
 $repository->count(['active' => true]);   // Contar registros
-$repository->allForSelect(['id', 'name']); // Para dropdowns
 ```
 
 ### 8. Ejemplo completo de uso
