@@ -12,6 +12,7 @@ Una librería de utilidades para Laravel que implementa el patrón Result y help
 - ✅ **GenericController**: Controlador base con dependencias preconfiguradas
 - ✅ **Implementación Mediator**: Patrón Mediator completo con Commands, Queries y Handlers
 - ✅ **CQRS Support**: Separación clara entre Commands (escritura) y Queries (lectura)
+- ✅ **GenericRepository**: Repositorio genérico con operaciones CRUD comunes
 - ✅ **Contratos bien definidos**: Interfaces claras para extensibilidad
 - ✅ **Manejo de excepciones**: Excepciones dedicadas para mejor debugging
 
@@ -374,7 +375,125 @@ class UserController extends GenericController
 }
 ```
 
-### 7. Ejemplo completo de uso
+### 7. GenericRepository para operaciones CRUD
+
+La librería incluye un repositorio genérico que simplifica las operaciones CRUD comunes:
+
+```php
+use BMCLibrary\Repository\GenericRepository;
+use BMCLibrary\Contracts\GenericRepositoryInterface;
+
+// 1. Crear tu repositorio específico
+class UserRepository extends GenericRepository
+{
+    public function __construct(User $model)
+    {
+        parent::__construct($model);
+    }
+    
+    // Métodos específicos para usuarios
+    public function findByEmail(string $email): ?User
+    {
+        return $this->getFirstWhere(['email' => $email]);
+    }
+    
+    public function getActiveUsers(int $perPage = 15): LengthAwarePaginator
+    {
+        return $this->getWhere(['active' => true], ['*'], $perPage);
+    }
+}
+
+// 2. Usar en los handlers
+class GetUsersQueryHandler extends QueryHandler
+{
+    public function __construct(
+        private UserRepository $userRepository
+    ) {}
+    
+    public function handle(object $request): Result
+    {
+        /** @var GetUsersQuery $request */
+        
+        try {
+            if ($request->search) {
+                $users = $this->userRepository->search([
+                    'filters' => ['name' => $request->search],
+                    'per_page' => $request->perPage
+                ]);
+            } else {
+                $users = $this->userRepository->all($request->perPage);
+            }
+            
+            return Result::ok($users, "Usuarios obtenidos exitosamente");
+        } catch (\Exception $e) {
+            return Result::fail("Error al obtener usuarios: " . $e->getMessage(), HttpStatus::SERVER_ERROR);
+        }
+    }
+}
+
+// 3. Command handler con repositorio
+class CreateUserCommandHandler extends CommandHandler
+{
+    public function __construct(
+        private UserRepository $userRepository
+    ) {}
+    
+    public function handle(object $request): Result
+    {
+        /** @var CreateUserCommand $request */
+        
+        try {
+            $user = $this->userRepository->create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => bcrypt($request->password),
+            ]);
+            
+            return Result::ok($user, "Usuario creado exitosamente");
+        } catch (\Exception $e) {
+            return Result::fail("Error al crear usuario: " . $e->getMessage(), HttpStatus::SERVER_ERROR);
+        }
+    }
+}
+```
+
+#### Métodos disponibles en GenericRepository:
+
+```php
+// Operaciones básicas
+$repository->all(15);                    // Paginado
+$repository->find($id);                  // Buscar por ID
+$repository->create($data);              // Crear nuevo
+$repository->update($id, $data);         // Actualizar
+$repository->delete($id);                // Eliminar
+$repository->exists($id);                // Verificar existencia
+
+// Búsquedas avanzadas
+$repository->getWhere(['active' => true], ['*'], 15);
+$repository->getFirstWhere(['email' => 'user@email.com']);
+
+// Búsqueda con filtros
+$repository->search([
+    'filters' => [
+        'name' => 'John',
+        'active' => true,
+        'profile' => ['type' => 'admin']  // Relación
+    ],
+    'per_page' => 20
+]);
+
+// Queries personalizadas
+$repository->whereQuery(['name', 'email'], [
+    'active' => true,
+    'created_at' => ['>=', '2024-01-01']
+])->get();
+
+// Utilidades
+$repository->count(['active' => true]);   // Contar registros
+$repository->allForSelect(['id', 'name']); // Para dropdowns
+```
+
+### 8. Ejemplo completo de uso
 
 ```php
 use BMCLibrary\Controllers\GenericController;
