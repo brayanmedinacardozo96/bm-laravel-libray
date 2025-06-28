@@ -16,6 +16,28 @@ abstract class GenericRepository implements GenericRepositoryInterface
         $this->model = $model;
     }
 
+    /**
+     * Create a repository instance for a specific model
+     *
+     * @param string $modelClass
+     * @return static
+     */
+    public static function for(string $modelClass): static
+    {
+        return new static(app($modelClass));
+    }
+
+    /**
+     * Create a repository instance with a model instance
+     *
+     * @param Model $model
+     * @return static
+     */
+    public static function withModel(Model $model): static
+    {
+        return new static($model);
+    }
+
     public function all(int $perPage = 15): LengthAwarePaginator
     {
         return $this->model->paginate($perPage);

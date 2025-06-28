@@ -379,17 +379,15 @@ class UserController extends GenericController
 
 La librería incluye un repositorio genérico que simplifica las operaciones CRUD comunes:
 
-```php
-use BMCLibrary\Repository\GenericRepository;
-use BMCLibrary\Contracts\GenericRepositoryInterface;
+#### Opción A: AutoModelRepository (Recomendado)
 
-// 1. Crear tu repositorio específico
-class UserRepository extends GenericRepository
+```php
+use BMCLibrary\Repository\AutoModelRepository;
+
+// 1. Crear tu repositorio sin constructor
+class UserRepository extends AutoModelRepository
 {
-    public function __construct(User $model)
-    {
-        parent::__construct($model);
-    }
+    protected string $modelClass = User::class;
     
     // Métodos específicos para usuarios
     public function findByEmail(string $email): ?User
@@ -407,52 +405,45 @@ class UserRepository extends GenericRepository
 class GetUsersQueryHandler extends QueryHandler
 {
     public function __construct(
-        private UserRepository $userRepository
+        private UserRepository $userRepository  // Se inyecta automáticamente
     ) {}
     
     public function handle(object $request): Result
     {
-        /** @var GetUsersQuery $request */
-        
-        try {
-            if ($request->search) {
-                $users = $this->userRepository->search([
-                    'filters' => ['name' => $request->search],
-                    'per_page' => $request->perPage
-                ]);
-            } else {
-                $users = $this->userRepository->all($request->perPage);
-            }
-            
-            return Result::ok($users, "Usuarios obtenidos exitosamente");
-        } catch (\Exception $e) {
-            return Result::fail("Error al obtener usuarios: " . $e->getMessage(), HttpStatus::SERVER_ERROR);
-        }
+        $users = $this->userRepository->all($request->perPage);
+        return Result::ok($users, "Usuarios obtenidos exitosamente");
+    }
+}
+```
+
+#### Opción B: Factory Methods
+
+```php
+use BMCLibrary\Repository\GenericRepository;
+
+class UserRepository extends GenericRepository
+{
+    public static function make(): self
+    {
+        return self::for(User::class);
     }
 }
 
-// 3. Command handler con repositorio
-class CreateUserCommandHandler extends CommandHandler
+// Uso directo
+$repository = UserRepository::make();
+$users = $repository->all();
+```
+
+#### Opción C: Constructor tradicional
+
+```php
+use BMCLibrary\Repository\GenericRepository;
+
+class UserRepository extends GenericRepository
 {
-    public function __construct(
-        private UserRepository $userRepository
-    ) {}
-    
-    public function handle(object $request): Result
+    public function __construct(User $model)
     {
-        /** @var CreateUserCommand $request */
-        
-        try {
-            $user = $this->userRepository->create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => bcrypt($request->password),
-            ]);
-            
-            return Result::ok($user, "Usuario creado exitosamente");
-        } catch (\Exception $e) {
-            return Result::fail("Error al crear usuario: " . $e->getMessage(), HttpStatus::SERVER_ERROR);
-        }
+        parent::__construct($model);
     }
 }
 ```

@@ -2,7 +2,9 @@
 
 Este ejemplo muestra cómo integrar el patrón Mediator con el GenericRepository para crear un sistema completo y bien estructurado.
 
-## 1. Configuración del Repositorio
+## 1. Configuración del Repositorio (3 opciones)
+
+### Opción A: Repository con AutoModel (Recomendado)
 
 ```php
 <?php
@@ -10,15 +12,12 @@ Este ejemplo muestra cómo integrar el patrón Mediator con el GenericRepository
 namespace App\Repositories;
 
 use App\Models\User;
-use BMCLibrary\Repository\GenericRepository;
+use BMCLibrary\Repository\AutoModelRepository;
 use Illuminate\Pagination\LengthAwarePaginator;
 
-class UserRepository extends GenericRepository
+class UserRepository extends AutoModelRepository
 {
-    public function __construct(User $model)
-    {
-        parent::__construct($model);
-    }
+    protected string $modelClass = User::class;
     
     /**
      * Find user by email
@@ -49,19 +48,54 @@ class UserRepository extends GenericRepository
             'per_page' => $perPage
         ]);
     }
-    
+}
+```
+
+### Opción B: Repository con Factory Methods
+
+```php
+<?php
+
+namespace App\Repositories;
+
+use App\Models\User;
+use BMCLibrary\Repository\GenericRepository;
+
+class UserRepository extends GenericRepository
+{
     /**
-     * Get users by role
+     * Create instance using factory method
      */
-    public function getUsersByRole(string $role, int $perPage = 15): LengthAwarePaginator
+    public static function make(): self
     {
-        return $this->search([
-            'filters' => [
-                'roles' => ['name' => $role]  // Relación con roles
-            ],
-            'per_page' => $perPage
-        ]);
+        return self::for(User::class);
     }
+    
+    // ...métodos específicos...
+}
+
+// Uso:
+$userRepository = UserRepository::make();
+```
+
+### Opción C: Repository tradicional (solo si necesitas algo específico)
+
+```php
+<?php
+
+namespace App\Repositories;
+
+use App\Models\User;
+use BMCLibrary\Repository\GenericRepository;
+
+class UserRepository extends GenericRepository
+{
+    public function __construct(User $model)
+    {
+        parent::__construct($model);
+    }
+    
+    // ...métodos específicos...
 }
 ```
 
@@ -286,6 +320,49 @@ class GetUsersQuery extends Query
 ```
 
 ## 5. Service Provider para registrar repositorios
+
+### Con AutoModelRepository (Más simple)
+
+```php
+<?php
+
+namespace App\Providers;
+
+use App\Repositories\UserRepository;
+use Illuminate\Support\ServiceProvider;
+
+class RepositoryServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        // AutoModelRepository se resuelve automáticamente
+        $this->app->bind(UserRepository::class);
+    }
+}
+```
+
+### Con Factory Methods
+
+```php
+<?php
+
+namespace App\Providers;
+
+use App\Repositories\UserRepository;
+use Illuminate\Support\ServiceProvider;
+
+class RepositoryServiceProvider extends ServiceProvider
+{
+    public function register(): void
+    {
+        $this->app->bind(UserRepository::class, function ($app) {
+            return UserRepository::make();
+        });
+    }
+}
+```
+
+### Con constructor tradicional
 
 ```php
 <?php
