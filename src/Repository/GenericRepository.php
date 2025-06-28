@@ -58,12 +58,12 @@ abstract class GenericRepository implements GenericRepositoryInterface
         return $this->model->insert($data);
     }
 
-    public function find($id): ?Model
+    public function find(mixed $id): ?Model
     {
         return $this->model->find($id);
     }
 
-    public function update($id, array $data): ?Model
+    public function update(mixed $id, array $data): ?Model
     {
         $record = $this->find($id);
 
@@ -75,7 +75,7 @@ abstract class GenericRepository implements GenericRepositoryInterface
         return null;
     }
 
-    public function delete($id): bool
+    public function delete(mixed $id): bool
     {
         $record = $this->find($id);
 
@@ -203,7 +203,7 @@ abstract class GenericRepository implements GenericRepositoryInterface
      * @param mixed $id
      * @return bool
      */
-    public function exists($id): bool
+    public function exists(mixed $id): bool
     {
         return $this->model->where($this->model->getKeyName(), $id)->exists();
     }

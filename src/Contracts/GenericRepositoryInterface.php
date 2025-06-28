@@ -47,7 +47,7 @@ interface GenericRepositoryInterface
      * @param mixed $id
      * @return Model|null
      */
-    public function find($id): ?Model;
+    public function find(mixed $id): ?Model;
 
     /**
      * Update a record
@@ -56,7 +56,7 @@ interface GenericRepositoryInterface
      * @param array $data
      * @return Model|null
      */
-    public function update($id, array $data): ?Model;
+    public function update(mixed $id, array $data): ?Model;
 
     /**
      * Delete a record
@@ -64,7 +64,7 @@ interface GenericRepositoryInterface
      * @param mixed $id
      * @return bool
      */
-    public function delete($id): bool;
+    public function delete(mixed $id): bool;
 
     /**
      * Search records
