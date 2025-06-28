@@ -9,6 +9,11 @@ Una librería de utilidades para Laravel que implementa el patrón Result y help
 - ✅ **Soporte para paginación**: Manejo automático de datos paginados
 - ✅ **Facade incluido**: Acceso fácil mediante `ApiResponse::method()`
 - ✅ **Auto-discovery**: Se registra automáticamente en Laravel
+- ✅ **GenericController**: Controlador base con dependencias preconfiguradas
+- ✅ **Implementación Mediator**: Patrón Mediator completo con Commands, Queries y Handlers
+- ✅ **CQRS Support**: Separación clara entre Commands (escritura) y Queries (lectura)
+- ✅ **Contratos bien definidos**: Interfaces claras para extensibilidad
+- ✅ **Manejo de excepciones**: Excepciones dedicadas para mejor debugging
 
 ## Instalación
 
@@ -21,7 +26,7 @@ composer require bm-library/bm-library
 ### Desde repositorio Git
 
 ```bash
-composer require bm-library/bm-library:dev-main
+composer require bm-library/bm-library:dev-master
 ```
 
 O agregar a tu `composer.json`:
@@ -35,7 +40,7 @@ O agregar a tu `composer.json`:
         }
     ],
     "require": {
-        "bm-library/bm-library": "dev-main"
+        "bm-library/bm-library": "dev-master"
     }
 }
 ```
@@ -131,6 +136,330 @@ public function index()
     $result = Result::ok($users);
     
     return ApiResponse::call($result); // Incluye automáticamente metadata de paginación
+}
+```
+
+### 5. Usando GenericController (Recomendado)
+
+Para facilitar el uso, puedes extender el controlador base que incluye las dependencias ya inyectadas:
+
+```php
+use BMCLibrary\Controllers\GenericController;
+use BMCLibrary\Utils\Result;
+use BMCLibrary\Utils\HttpStatus;
+
+class UserController extends GenericController
+{
+    public function index()
+    {
+        try {
+            $users = User::all();
+            $result = Result::ok($users, "Usuarios obtenidos exitosamente");
+            
+            return $this->apiResponse->call($result);
+        } catch (\Exception $e) {
+            $result = Result::fail("Error al obtener usuarios", HttpStatus::SERVER_ERROR);
+            return $this->apiResponse->call($result);
+        }
+    }
+    
+    public function store(Request $request)
+    {
+        // Con mediator (si está configurado)
+        if ($this->mediator) {
+            $command = new CreateUserCommand($request->all());
+            $result = $this->mediator->send($command);
+            
+            return $this->apiResponse->call($result, HttpStatus::CREATED);
+        }
+        
+        // Sin mediator
+        $user = User::create($request->all());
+        $result = Result::ok($user, "Usuario creado exitosamente");
+        
+        return $this->apiResponse->call($result, HttpStatus::CREATED);
+    }
+}
+```
+
+### 6. Patrón Mediator con CQRS
+
+La librería incluye una implementación completa del patrón Mediator con soporte para CQRS (Command Query Responsibility Segregation):
+
+#### Commands (Operaciones de escritura)
+
+```php
+use BMCLibrary\Mediator\Command;
+use BMCLibrary\Mediator\CommandHandler;
+use BMCLibrary\Utils\Result;
+use BMCLibrary\Utils\HttpStatus;
+
+// Command para crear usuario
+class CreateUserCommand extends Command
+{
+    public function __construct(
+        public readonly string $name,
+        public readonly string $email,
+        public readonly string $password
+    ) {}
+}
+
+// Handler para el command
+class CreateUserCommandHandler extends CommandHandler
+{
+    public function handle(object $request): Result
+    {
+        /** @var CreateUserCommand $request */
+        
+        $validator = validator([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => $request->password,
+        ], [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|min:8',
+        ]);
+
+        if ($validator->fails()) {
+            return Result::fail("Errores de validación", HttpStatus::UNPROCESSABLE_ENTITY);
+        }
+
+        try {
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => bcrypt($request->password),
+            ]);
+
+            return Result::ok($user, "Usuario creado exitosamente");
+        } catch (\Exception $e) {
+            return Result::fail("Error al crear usuario: " . $e->getMessage(), HttpStatus::SERVER_ERROR);
+        }
+    }
+}
+```
+
+#### Queries (Operaciones de lectura)
+
+```php
+use BMCLibrary\Mediator\Query;
+use BMCLibrary\Mediator\QueryHandler;
+use BMCLibrary\Utils\Result;
+use BMCLibrary\Utils\HttpStatus;
+
+// Query para obtener usuarios
+class GetUsersQuery extends Query
+{
+    public function __construct(
+        public readonly ?string $search = null,
+        public readonly int $perPage = 15,
+        public readonly ?string $sortBy = 'created_at',
+        public readonly string $sortDirection = 'desc'
+    ) {}
+}
+
+// Handler para la query
+class GetUsersQueryHandler extends QueryHandler
+{
+    public function handle(object $request): Result
+    {
+        /** @var GetUsersQuery $request */
+        
+        try {
+            $query = User::query();
+            
+            // Filtro de búsqueda
+            if ($request->search) {
+                $query->where(function($q) use ($request) {
+                    $q->where('name', 'like', "%{$request->search}%")
+                      ->orWhere('email', 'like', "%{$request->search}%");
+                });
+            }
+            
+            // Ordenamiento
+            if ($request->sortBy) {
+                $query->orderBy($request->sortBy, $request->sortDirection);
+            }
+            
+            $users = $query->paginate($request->perPage);
+            
+            return Result::ok($users, "Usuarios obtenidos exitosamente");
+        } catch (\Exception $e) {
+            return Result::fail("Error al obtener usuarios: " . $e->getMessage(), HttpStatus::SERVER_ERROR);
+        }
+    }
+}
+
+// Query para obtener un usuario específico
+class GetUserByIdQuery extends Query
+{
+    public function __construct(
+        public readonly int $userId
+    ) {}
+}
+
+class GetUserByIdQueryHandler extends QueryHandler
+{
+    public function handle(object $request): Result
+    {
+        /** @var GetUserByIdQuery $request */
+        
+        $user = User::find($request->userId);
+        
+        if (!$user) {
+            return Result::fail("Usuario no encontrado", HttpStatus::NOT_FOUND);
+        }
+        
+        return Result::ok($user, "Usuario encontrado");
+    }
+}
+```
+
+#### Uso en el controlador
+
+```php
+class UserController extends GenericController
+{
+    // Query - Operación de lectura
+    public function index(Request $request)
+    {
+        $query = new GetUsersQuery(
+            $request->input('search'),
+            $request->input('per_page', 15),
+            $request->input('sort_by'),
+            $request->input('sort_direction', 'desc')
+        );
+
+        $result = $this->mediator->send($query);
+        
+        return $this->apiResponse->call($result);
+    }
+    
+    // Query - Operación de lectura
+    public function show($id)
+    {
+        $query = new GetUserByIdQuery($id);
+        $result = $this->mediator->send($query);
+        
+        return $this->apiResponse->call($result);
+    }
+
+    // Command - Operación de escritura
+    public function store(Request $request)
+    {
+        $command = new CreateUserCommand(
+            $request->input('name'),
+            $request->input('email'),
+            $request->input('password')
+        );
+
+        $result = $this->mediator->send($command);
+        
+        return $this->apiResponse->call($result, HttpStatus::CREATED);
+    }
+    
+    // Command - Operación de escritura
+    public function update(Request $request, $id)
+    {
+        $command = new UpdateUserCommand(
+            $id,
+            $request->only(['name', 'email'])
+        );
+
+        $result = $this->mediator->send($command);
+        
+        return $this->apiResponse->call($result);
+    }
+}
+```
+
+### 7. Ejemplo completo de uso
+
+```php
+use BMCLibrary\Controllers\GenericController;
+use BMCLibrary\Utils\Result;
+use BMCLibrary\Utils\HttpStatus;
+use BMCLibrary\Facades\ApiResponse;
+
+class ProductController extends GenericController
+{
+    public function index(Request $request)
+    {
+        try {
+            $products = Product::when($request->search, function($query, $search) {
+                return $query->where('name', 'like', "%{$search}%");
+            })->paginate(15);
+            
+            $result = Result::ok($products, "Productos obtenidos exitosamente");
+            
+            return $this->apiResponse->call($result);
+            
+        } catch (\Exception $e) {
+            $result = Result::fail("Error al obtener productos: " . $e->getMessage());
+            return $this->apiResponse->call($result, HttpStatus::SERVER_ERROR);
+        }
+    }
+    
+    public function store(Request $request)
+    {
+        $validator = validator($request->all(), [
+            'name' => 'required|string|max:255',
+            'price' => 'required|numeric|min:0',
+            'category_id' => 'required|exists:categories,id'
+        ]);
+        
+        if ($validator->fails()) {
+            return $this->apiResponse
+                ->success(false)
+                ->message("Datos de validación incorrectos")
+                ->validation($validator->errors())
+                ->status(HttpStatus::UNPROCESSABLE_ENTITY)
+                ->build();
+        }
+        
+        $product = Product::create($request->all());
+        $result = Result::ok($product, "Producto creado exitosamente");
+        
+        return $this->apiResponse->call($result, HttpStatus::CREATED);
+    }
+    
+    public function show(Product $product)
+    {
+        $result = Result::ok($product, "Producto encontrado");
+        return $this->apiResponse->call($result);
+    }
+    
+    public function update(Request $request, Product $product)
+    {
+        $validator = validator($request->all(), [
+            'name' => 'sometimes|string|max:255',
+            'price' => 'sometimes|numeric|min:0',
+            'category_id' => 'sometimes|exists:categories,id'
+        ]);
+        
+        if ($validator->fails()) {
+            return $this->apiResponse
+                ->success(false)
+                ->message("Datos de validación incorrectos")
+                ->validation($validator->errors())
+                ->status(HttpStatus::UNPROCESSABLE_ENTITY)
+                ->build();
+        }
+        
+        $product->update($request->all());
+        $result = Result::ok($product, "Producto actualizado exitosamente");
+        
+        return $this->apiResponse->call($result);
+    }
+    
+    public function destroy(Product $product)
+    {
+        $product->delete();
+        $result = Result::ok(null, "Producto eliminado exitosamente");
+        
+        return $this->apiResponse->call($result);
+    }
 }
 ```
 
@@ -253,3 +582,12 @@ use TuEmpresa\LaravelUtils\Enums\HttpStatus;
 
 return response()->json($data, HttpStatus::CREATED);
 ```
+
+**Ventajas del patrón Mediator con CQRS:**
+- ✅ **Separación clara**: Commands para escritura, Queries para lectura
+- ✅ **Código más testeable**: Cada handler tiene una responsabilidad específica
+- ✅ **Lógica de negocio encapsulada**: Toda la lógica está en los handlers
+- ✅ **Fácil reutilización**: Commands y Queries reutilizables
+- ✅ **Manejo consistente de errores**: Usando el patrón Result
+- ✅ **Escalabilidad**: Fácil optimizar queries independientemente de commands
+- ✅ **Mantenibilidad**: Código organizado y fácil de mantener
