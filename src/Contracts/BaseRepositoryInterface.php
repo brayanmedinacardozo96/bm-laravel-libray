@@ -80,4 +80,14 @@ interface BaseRepositoryInterface
      * Check if record exists by ID
      */
     public function exists(mixed $id): bool;
+
+    /**
+     * Update or create a record with separate parameters
+     */
+    public function updateOrCreateWithFilters(array $attributes, array $filters);
+
+    /**
+     * Update or create a record (alternative method)
+     */
+    public function updateOrCreateRecord(array $attributes, array $filters);
 }

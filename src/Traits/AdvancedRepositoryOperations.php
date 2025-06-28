@@ -120,6 +120,30 @@ trait AdvancedRepositoryOperations
     }
 
     /**
+     * Update or create a record with separate parameters
+     *
+     * @param array $attributes Data to update/create
+     * @param array $filters Conditions to find existing record
+     * @return Model
+     */
+    public function updateOrCreateWithFilters(array $attributes, array $filters): Model
+    {
+        return $this->model->updateOrCreate($filters, $attributes);
+    }
+
+    /**
+     * Update or create a record (alternative method signature)
+     *
+     * @param array $attributes Data to update/create
+     * @param array $filters Conditions to find existing record
+     * @return Model
+     */
+    public function updateOrCreateRecord(array $attributes, array $filters): Model
+    {
+        return $this->updateOrCreateWithFilters($attributes, $filters);
+    }
+
+    /**
      * Insert multiple records at once
      *
      * @param array $data
