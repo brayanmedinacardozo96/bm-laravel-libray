@@ -15,6 +15,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 abstract class GenericRepository implements GenericRepositoryInterface
 {
     use AdvancedRepositoryOperations, BasicRepositoryOperations;
+
     protected Model $model;
 
     public function __construct(Model $model)
@@ -67,6 +68,11 @@ abstract class GenericRepository implements GenericRepositoryInterface
     public function create(array $data): Model
     {
         return $this->model->create($data);
+    }
+
+    public function insert(array $data): bool
+    {
+        return $this->model->insert($data);
     }
 
     public function find(mixed $id): ?Model

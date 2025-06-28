@@ -108,30 +108,6 @@ trait BasicRepositoryOperations
     }
 
     /**
-     * Get all records without pagination
-     *
-     * @param array $conditions
-     * @param array $columns
-     * @return Collection
-     */
-    public function getAllRecords(array $conditions = [], array $columns = ['*']): Collection
-    {
-        return $this->whereQuery($columns, $conditions)->get();
-    }
-
-    /**
-     * Get all records where conditions match
-     *
-     * @param array $where
-     * @param array $columns
-     * @return Collection
-     */
-    public function getAllWhere(array $where, array $columns = ['*']): Collection
-    {
-        return $this->whereQuery($columns, $where)->get();
-    }
-
-    /**
      * Get all records for select dropdown (id, name)
      *
      * @param array $conditions
@@ -139,7 +115,7 @@ trait BasicRepositoryOperations
      * @param string $textField
      * @return Collection
      */
-    public function getAllForSelect(array $conditions = [], string $valueField = 'id', string $textField = 'name'): Collection
+    public function getAllForSelectAdvanced(array $conditions = [], string $valueField = 'id', string $textField = 'name'): Collection
     {
         return $this->whereQuery([$valueField, $textField], $conditions)->get();
     }
