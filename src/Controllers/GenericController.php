@@ -2,11 +2,10 @@
 
 namespace BMCLibrary\Controllers;
 
-use Illuminate\Routing\Controller;
 use BMCLibrary\Contracts\ApiResponseInterface;
 use BMCLibrary\Contracts\MediatorInterface;
 
-abstract class GenericController extends Controller
+abstract class GenericController
 {
     public function __construct(
         protected ApiResponseInterface $apiResponse,
