@@ -34,4 +34,28 @@ abstract class GeneralFormRequest extends FormRequest
                 ->build()
         );
     }
+
+    protected function validateJsonField(string $attribute, $value, $fail): void
+    {
+        if ($value === null) {
+            return; // Campo nullable
+        }
+
+        // Si es un array/objeto, es válido
+        if (is_array($value)) {
+            return;
+        }
+
+        // Si es string, validar que sea JSON válido
+        if (is_string($value)) {
+            json_decode($value);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                $fail("El campo {$attribute} debe ser un objeto válido o una cadena JSON válida.");
+            }
+            return;
+        }
+
+        // Si no es array ni string, es inválido
+        $fail("El campo {$attribute} debe ser un objeto o una cadena JSON válida.");
+    }
 }
