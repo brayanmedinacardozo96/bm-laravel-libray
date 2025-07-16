@@ -248,4 +248,16 @@ abstract class GenericRepository implements GenericRepositoryInterface
     {
         return $this->model->where($this->model->getKeyName(), $id)->exists();
     }
+
+    /**
+     * Update multiple records matching conditions
+     *
+     * @param array $conditions  Condiciones para filtrar los registros
+     * @param array $data        Datos a actualizar
+     * @return int               Número de registros afectados
+     */
+    public function updateMany(array $conditions, array $data): int
+    {
+        return $this->model->where($conditions)->update($data);
+    }
 }
