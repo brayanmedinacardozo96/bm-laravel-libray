@@ -90,4 +90,13 @@ interface BaseRepositoryInterface
      * Update or create a record (alternative method)
      */
     public function updateOrCreateRecord(array $attributes, array $filters);
+
+    /**
+     * Update multiple records matching conditions
+     *
+     * @param array $conditions  Condiciones para filtrar los registros
+     * @param array $data        Datos a actualizar
+     * @return int               Número de registros afectados
+     */
+    public function updateWhere(array $conditions, array $data): int;
 }

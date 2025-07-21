@@ -20,8 +20,8 @@ trait AdvancedRepositoryOperations
     public function distinct(string $column, array $conditions = []): Collection
     {
         return $this->whereQuery([$column], $conditions)
-                    ->distinct()
-                    ->pluck($column);
+            ->distinct()
+            ->pluck($column);
     }
 
     /**
@@ -81,7 +81,7 @@ trait AdvancedRepositoryOperations
      */
     public function updateWhere(array $conditions, array $data): int
     {
-        return $this->whereQuery(['*'], $conditions)->update($data);
+        return $this->whereQuery(where: $conditions)->update($data);
     }
 
     /**
@@ -164,9 +164,9 @@ trait AdvancedRepositoryOperations
     public function random(int $count = 1, array $conditions = []): Collection
     {
         return $this->whereQuery(['*'], $conditions)
-                    ->inRandomOrder()
-                    ->limit($count)
-                    ->get();
+            ->inRandomOrder()
+            ->limit($count)
+            ->get();
     }
 
     /**
@@ -180,9 +180,9 @@ trait AdvancedRepositoryOperations
     public function latest(int $count = 10, string $column = 'created_at', array $conditions = []): Collection
     {
         return $this->whereQuery(['*'], $conditions)
-                    ->latest($column)
-                    ->limit($count)
-                    ->get();
+            ->latest($column)
+            ->limit($count)
+            ->get();
     }
 
     /**
@@ -196,9 +196,9 @@ trait AdvancedRepositoryOperations
     public function oldest(int $count = 10, string $column = 'created_at', array $conditions = []): Collection
     {
         return $this->whereQuery(['*'], $conditions)
-                    ->oldest($column)
-                    ->limit($count)
-                    ->get();
+            ->oldest($column)
+            ->limit($count)
+            ->get();
     }
 
     /**

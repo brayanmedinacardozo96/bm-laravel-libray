@@ -95,7 +95,7 @@ interface GenericRepositoryInterface
      * @param array $where
      * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function whereQuery(array $columns = ['*'], array $where = []): \Illuminate\Database\Eloquent\Builder;
+    public function whereQuery(?array $columns = ['*'], array $where = []): \Illuminate\Database\Eloquent\Builder;
 
     /**
      * Update or create a record with separate parameters
@@ -114,5 +114,5 @@ interface GenericRepositoryInterface
      * @param array $data        Datos a actualizar
      * @return int               Número de registros afectados
      */
-    public function updateMany(array $conditions, array $data): int;
+    public function updateWhere(array $conditions, array $data): int;
 }

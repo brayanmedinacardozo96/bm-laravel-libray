@@ -103,9 +103,14 @@ abstract class GenericRepository implements GenericRepositoryInterface
         return false;
     }
 
-    public function whereQuery(array $columns = ['*'], array $where = []): EloquentBuilder
+    public function whereQuery(?array $columns = ['*'], array $where = []): EloquentBuilder
     {
-        $query = $this->model->select($columns);
+
+        $query = $this->model;
+
+        if (!empty($columns)) {
+            $query = $this->model->select($columns);
+        }
 
         foreach ($where as $column => $value) {
             $this->applyWhereCondition($query, $column, $value);
@@ -247,17 +252,5 @@ abstract class GenericRepository implements GenericRepositoryInterface
     public function exists(mixed $id): bool
     {
         return $this->model->where($this->model->getKeyName(), $id)->exists();
-    }
-
-    /**
-     * Update multiple records matching conditions
-     *
-     * @param array $conditions  Condiciones para filtrar los registros
-     * @param array $data        Datos a actualizar
-     * @return int               Número de registros afectados
-     */
-    public function updateMany(array $conditions, array $data): int
-    {
-        return $this->model->where($conditions)->update($data);
     }
 }
