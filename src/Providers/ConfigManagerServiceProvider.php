@@ -40,6 +40,17 @@ class ConfigManagerServiceProvider extends ServiceProvider
                 'Content-Type' => 'application/json',
             ]);
 
+            // Configuración SSL
+            $sslVerify = config('services.api.ssl_verify', true);
+            if (!$sslVerify) {
+                $client->disableSSLVerification();
+            }
+
+            // Configurar opciones SSL personalizadas si existen
+            if ($sslOptions = config('services.api.ssl_options')) {
+                $client->setSSLOptions($sslOptions);
+            }
+
             return $client;
         });
     }
