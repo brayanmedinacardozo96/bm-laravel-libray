@@ -2,6 +2,8 @@
 
 namespace BMCLibrary\Providers;
 
+use BMCLibrary\AppHttpClient\Abstractions\HttpClientInterface;
+use BMCLibrary\AppHttpClient\AppHttpClient;
 use BMCLibrary\Contracts\ApiResponseInterface;
 use BMCLibrary\Contracts\MediatorInterface;
 use BMCLibrary\Mediator\Mediator;
@@ -19,6 +21,27 @@ class ConfigManagerServiceProvider extends ServiceProvider
         // Registrar Mediator como singleton
         $this->app->singleton(MediatorInterface::class, Mediator::class);
         $this->app->singleton('bm-library.mediator', Mediator::class);
+
+        $this->app->singleton(HttpClientInterface::class, function ($app) {
+            $client = new AppHttpClient();
+
+            // Configurar desde el .env
+            if ($baseUrl = config('services.api.base_url')) {
+                $client->setBaseUrl($baseUrl);
+            }
+
+            if ($timeout = config('services.api.timeout')) {
+                $client->setTimeout($timeout);
+            }
+
+            // Headers por defecto
+            $client->setDefaultHeaders([
+                'Accept' => 'application/json',
+                'Content-Type' => 'application/json',
+            ]);
+
+            return $client;
+        });
     }
 
     public function boot(): void
