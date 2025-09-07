@@ -116,10 +116,11 @@ interface GenericRepositoryInterface
      */
     public function updateWhere(array $conditions, array $data): int;
 
+
     /**
-     * Get a new query builder instance
+     * Get the underlying model instance
      *
-     * @return \Illuminate\Database\Eloquent\Builder
+     * @return Model
      */
-    public function query(): \Illuminate\Database\Eloquent\Builder;
+    public function model(): Model;
 }

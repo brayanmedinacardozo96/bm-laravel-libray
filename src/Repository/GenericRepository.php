@@ -252,8 +252,8 @@ abstract class GenericRepository implements GenericRepositoryInterface
         return $this->model->where($this->model->getKeyName(), $id)->exists();
     }
 
-    public function query(): EloquentBuilder
+    public function model(): Model
     {
-        return $this->model->newQuery();
+        return $this->model;
     }
 }
