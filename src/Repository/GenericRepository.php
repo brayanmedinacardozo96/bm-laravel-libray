@@ -3,13 +3,11 @@
 namespace BMCLibrary\Repository;
 
 use BMCLibrary\Contracts\GenericRepositoryInterface;
-use BMCLibrary\Exceptions\RepositoryException;
 use BMCLibrary\Traits\AdvancedRepositoryOperations;
 use BMCLibrary\Traits\BasicRepositoryOperations;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 abstract class GenericRepository implements GenericRepositoryInterface
@@ -252,5 +250,10 @@ abstract class GenericRepository implements GenericRepositoryInterface
     public function exists(mixed $id): bool
     {
         return $this->model->where($this->model->getKeyName(), $id)->exists();
+    }
+
+    public function query(): EloquentBuilder
+    {
+        return $this->model->newQuery();
     }
 }

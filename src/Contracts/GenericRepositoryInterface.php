@@ -115,4 +115,11 @@ interface GenericRepositoryInterface
      * @return int               Número de registros afectados
      */
     public function updateWhere(array $conditions, array $data): int;
+
+    /**
+     * Get a new query builder instance
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function query(): \Illuminate\Database\Eloquent\Builder;
 }
